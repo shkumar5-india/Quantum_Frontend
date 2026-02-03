@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quantum Chemistry VQE Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.loader { border-top-color:#3498db; animation:spin 1.2s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.tab-active { border-bottom:3px solid #3b82f6; color:#3b82f6; }
+</style>
+</head>
+
+<body class="bg-gray-100 font-sans">
+
+<header class="bg-indigo-700 text-white p-6 shadow-lg">
+<h1 class="text-3xl font-bold">VQE Simulator Dashboard</h1>
+<p class="text-sm opacity-80">Quantum Computing for Molecular Energy & Hydrogen Storage</p>
+</header>
+
+<div class="flex bg-white shadow-md mb-6">
+<button onclick="showPart(1)" id="tab1" class="flex-1 py-4 font-semibold tab-active">PART 1: Molecular Dissociation</button>
+<button onclick="showPart(2)" id="tab2" class="flex-1 py-4 font-semibold text-gray-500">PART 2: Hydrogen Storage</button>
+</div>
+
+<main class="max-w-6xl mx-auto px-4">
+
+<!-- PART 1 -->
+<section id="section1">
+<div class="bg-white p-6 rounded shadow grid grid-cols-1 md:grid-cols-3 gap-4">
+
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Molecule</label>
+<select id="p1-molecule" class="border p-2 rounded w-full">
+<option value="H2">H2 (Hydrogen)</option>
+<option value="LiH">LiH (Lithium Hydride)</option>
+</select>
+</div>
+
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Basis Set</label>
+<input id="p1-basis" value="sto3g" class="border p-2 rounded w-full"/>
+</div>
+
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Mapper</label>
+<select id="p1-mapper" class="border p-2 rounded w-full">
+<option value="JW">Jordan-Wigner</option>
+<option value="Parity">Parity</option>
+</select>
+</div>
+
+<button onclick="runPart1()" id="btn-p1" class="col-span-3 bg-blue-600 text-white p-2 rounded font-semibold">
+Run VQE Dissociation
+</button>
+</div>
+
+<div id="loader1" class="hidden text-center p-6">
+<div class="loader h-12 w-12 mx-auto border-4 border-gray-200 rounded-full"></div>
+<p>Running quantum simulation...</p>
+</div>
+
+<div id="result1" class="hidden bg-white p-6 rounded shadow mt-4">
+<p><b>Optimal Bond Distance:</b> <span id="res1-dist"></span> Å</p>
+<p><b>Minimum Energy:</b> <span id="res1-energy"></span> Hartree</p>
+<img id="img1" class="mt-4 w-full"/>
+</div>
+</section>
+
+<!-- PART 2 -->
+<section id="section2" class="hidden">
+<div class="bg-white p-6 rounded shadow grid grid-cols-1 md:grid-cols-4 gap-4">
+
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Basis Set</label>
+<input id="p2-basis" value="sto3g" class="border p-2 rounded w-full"/>
+</div>
+
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Mapper</label>
+<select id="p2-mapper" class="border p-2 rounded w-full">
+<option value="JW">Jordan-Wigner</option>
+<option value="Parity">Parity</option>
+</select>
+</div>
+
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Temperature (K)</label>
+<input id="p2-temp" type="number" value="298.15" class="border p-2 rounded w-full"/>
+</div>
+
+<button onclick="runPart2()" id="btn-p2" class="bg-green-600 text-white p-2 rounded font-semibold">
+Analyze Hydrogen Storage
+</button>
+</div>
+
+<div id="loader2" class="hidden text-center p-6">
+<div class="loader h-12 w-12 mx-auto border-4 border-gray-200 rounded-full"></div>
+<p>Analyzing hydrogen storage...</p>
+</div>
+
+<div id="result2" class="hidden bg-white p-6 rounded shadow mt-4">
+<p><b>Binding Energy:</b> <span id="res2-bind"></span> kJ/mol</p>
+<p><b>Release Energy:</b> <span id="res2-release"></span> kJ/mol</p>
+<p><b>?G (Binding):</b> <span id="res2-dg"></span></p>
+<p><b>Spontaneity:</b> <span id="res2-spont"></span></p>
+<img id="img2-1" class="mt-4 w-full"/>
+<img id="img2-2" class="mt-4 w-full"/>
+</div>
+</section>
+
+</main>
+
+<script>
+const API_BASE = "https://YOUR-BACKEND-NAME.onrender.com";
+
+function showPart(p){
+document.getElementById('section1').classList.toggle('hidden', p!==1);
+document.getElementById('section2').classList.toggle('hidden', p!==2);
+document.getElementById('tab1').classList.toggle('tab-active', p===1);
+document.getElementById('tab2').classList.toggle('tab-active', p===2);
+}
+
+async function runPart1(){
+toggleLoading(1,true);
+try{
+const res = await fetch(`${API_BASE}/run_vqe_curve`,{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+molecule: document.getElementById('p1-molecule').value,
+basis: document.getElementById('p1-basis').value,
+mapper: document.getElementById('p1-mapper').value
+})
+});
+const r = await res.json();
+document.getElementById('res1-dist').innerText=r.optimal_distance.toFixed(4);
+document.getElementById('res1-energy').innerText=r.min_energy.toFixed(6);
+document.getElementById('img1').src=`data:image/png;base64,${r.plot}`;
+document.getElementById('result1').classList.remove('hidden');
+}catch(e){ alert("Backend error"); console.error(e);}
+toggleLoading(1,false);
+}
+
+async function runPart2(){
+toggleLoading(2,true);
+try{
+const res = await fetch(`${API_BASE}/run_hydrogen_storage`,{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+basis: document.getElementById('p2-basis').value,
+mapper: document.getElementById('p2-mapper').value,
+temperature: parseFloat(document.getElementById('p2-temp').value)
+})
+});
+const r = await res.json();
+document.getElementById('res2-bind').innerText=r.binding_energy_kjmol.toFixed(2);
+document.getElementById('res2-release').innerText=r.release_energy_kjmol.toFixed(2);
+document.getElementById('res2-dg').innerText=r.deltaG_binding.toFixed(2);
+document.getElementById('res2-spont').innerText=r.spontaneity;
+document.getElementById('img2-1').src=`data:image/png;base64,${r.plots.binding_curve}`;
+document.getElementById('img2-2').src=`data:image/png;base64,${r.plots.reaction_diagram}`;
+document.getElementById('result2').classList.remove('hidden');
+}catch(e){ alert("Simulation failed"); console.error(e);}
+toggleLoading(2,false);
+}
+
+function toggleLoading(p,l){
+document.getElementById(`btn-p${p}`).disabled=l;
+document.getElementById(`loader${p}`).classList.toggle('hidden',!l);
+}
+</script>
+
+</body>
+</html>
