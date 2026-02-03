@@ -102,7 +102,7 @@ Analyze Hydrogen Storage
 <div id="result2" class="hidden bg-white p-6 rounded shadow mt-4">
 <p><b>Binding Energy:</b> <span id="res2-bind"></span> kJ/mol</p>
 <p><b>Release Energy:</b> <span id="res2-release"></span> kJ/mol</p>
-<p><b>?G (Binding):</b> <span id="res2-dg"></span></p>
+<p><b>ΔG (Binding):</b> <span id="res2-dg"></span></p>
 <p><b>Spontaneity:</b> <span id="res2-spont"></span></p>
 <img id="img2-1" class="mt-4 w-full"/>
 <img id="img2-2" class="mt-4 w-full"/>
@@ -133,12 +133,24 @@ basis: document.getElementById('p1-basis').value,
 mapper: document.getElementById('p1-mapper').value
 })
 });
+
 const r = await res.json();
-document.getElementById('res1-dist').innerText=r.optimal_distance.toFixed(4);
-document.getElementById('res1-energy').innerText=r.min_energy.toFixed(6);
-document.getElementById('img1').src=`data:image/png;base64,${r.plot}`;
+
+if (r.error) {
+  alert("Backend Error: " + r.error);
+  toggleLoading(1,false);
+  return;
+}
+
+document.getElementById('res1-dist').innerText = r.optimal_distance.toFixed(4);
+document.getElementById('res1-energy').innerText = r.min_energy.toFixed(6);
+document.getElementById('img1').src = `data:image/png;base64,${r.plot}`;
 document.getElementById('result1').classList.remove('hidden');
-}catch(e){ alert("Backend error"); console.error(e);}
+
+}catch(e){
+alert("Server not responding or long simulation. Try again.");
+console.error(e);
+}
 toggleLoading(1,false);
 }
 
@@ -154,15 +166,27 @@ mapper: document.getElementById('p2-mapper').value,
 temperature: parseFloat(document.getElementById('p2-temp').value)
 })
 });
+
 const r = await res.json();
-document.getElementById('res2-bind').innerText=r.binding_energy_kjmol.toFixed(2);
-document.getElementById('res2-release').innerText=r.release_energy_kjmol.toFixed(2);
-document.getElementById('res2-dg').innerText=r.deltaG_binding.toFixed(2);
-document.getElementById('res2-spont').innerText=r.spontaneity;
-document.getElementById('img2-1').src=`data:image/png;base64,${r.plots.binding_curve}`;
-document.getElementById('img2-2').src=`data:image/png;base64,${r.plots.reaction_diagram}`;
+
+if (r.error) {
+  alert("Backend Error: " + r.error);
+  toggleLoading(2,false);
+  return;
+}
+
+document.getElementById('res2-bind').innerText = r.binding_energy_kjmol.toFixed(2);
+document.getElementById('res2-release').innerText = r.release_energy_kjmol.toFixed(2);
+document.getElementById('res2-dg').innerText = r.deltaG_binding.toFixed(2);
+document.getElementById('res2-spont').innerText = r.spontaneity;
+document.getElementById('img2-1').src = `data:image/png;base64,${r.plots.binding_curve}`;
+document.getElementById('img2-2').src = `data:image/png;base64,${r.plots.reaction_diagram}`;
 document.getElementById('result2').classList.remove('hidden');
-}catch(e){ alert("Simulation failed"); console.error(e);}
+
+}catch(e){
+alert("Simulation taking too long or server sleeping. Click again.");
+console.error(e);
+}
 toggleLoading(2,false);
 }
 
@@ -172,6 +196,8 @@ document.getElementById(`loader${p}`).classList.toggle('hidden',!l);
 }
 </script>
 
+
 </body>
 
 </html>
+
